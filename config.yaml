@@ -1,0 +1,10 @@
+num_train: 5000
+filters: 32
+filter_size: 5
+weight_scale: 1e-3
+hidden_dim: 300
+reg: 1e-3
+num_epochs: 5
+batch_size: 50
+learning_rate: 1e-4
+lr_decay: 0.95

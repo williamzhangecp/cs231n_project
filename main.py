@@ -8,35 +8,61 @@ from cs231n.layers import *
 from cs231n.fast_layers import *
 from cs231n.solver import Solver
 
+import sys
+import yaml
 
 def rel_error(x, y):
   """ returns relative error """
   return np.max(np.abs(x - y) / (np.maximum(1e-8, np.abs(x) + np.abs(y))))
 
-X_train, y_train, X_test, y_test, X_val, y_val = process_data.read_faces_csv('fer2013/fer2013.csv')
+# Analyzing command line arguments
+if len(sys.argv) < 3:
+  print 'Usage:'
+  print '  python %s <.csv file> <.yaml config file>' % sys.argv[0]
+  exit()
 
-N_train, img_size, _ = X_train.shape
-N_val, _, _ = X_val.shape
+csv_file, config_file = sys.argv[1], sys.argv[2]
 
-X_train = X_train.reshape(N_train, 1, img_size, img_size) # fake extra dim for channels
-X_val = X_val.reshape(N_val, 1, img_size, img_size)
+# reading in configuration file with parameters
+f = open(config_file)
+options = yaml.load(f)
+f.close()
 
+num_train = options['num_train']
+num_filters, filter_size = options['filters'], options['filter_size']
+weight = float(options['weight_scale'])
+hidden_dim = options['hidden_dim']
+reg = float(options['reg'])
+num_epochs = options['num_epochs']
+batch_size = options['batch_size']
+learning_rate = float(options['learning_rate'])
+lr_decay = float(options['lr_decay'])
 
-data = {'X_train' : X_train[:5000,:,:,:], 'y_train' : y_train[:5000], "X_val" : X_val, "y_val" : y_val }
+# read in data
+X_train, y_train, X_test, y_test, X_val, y_val = process_data.read_faces_csv(csv_file)
 
-reg = 0.000511417045343
-learning_rate = 0.000135139484703
-weight_scale = 0.002088691359
+N_train, _, H, W = X_train.shape
+N_val, _, _, _ = X_val.shape
 
-model = ThreeLayerConvNet(input_dim=(1, img_size, img_size), num_classes=7, num_filters=32, filter_size=5, weight_scale=weight_scale, hidden_dim=500, reg=reg)
+data = {'X_train' : X_train[:num_train,:,:,:], 'y_train' : y_train[:num_train], \
+		"X_val" : X_val, "y_val" : y_val }
+
+print "Done loading data"
+
+# reg = 0.000511417045343
+# learning_rate = 0.000135139484703
+# weight_scale = 0.002088691359
+
+model = ThreeLayerConvNet(input_dim=(1, H, W), num_classes=7, num_filters=num_filters, filter_size=filter_size, \
+							weight_scale=weight, hidden_dim=hidden_dim, reg=reg)
 
 solver = Solver(model, data,
-                num_epochs=5, batch_size=50,
+                num_epochs=num_epochs, batch_size=batch_size,
                 update_rule='adam',
                 optim_config={
                   'learning_rate': learning_rate,
                 },
-                lr_decay=0.95,
+                lr_decay=lr_decay,
                 verbose=True, print_every=10)
 
 solver.train()
