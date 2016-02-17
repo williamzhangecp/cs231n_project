@@ -1,11 +1,7 @@
 import csv
 import numpy as np
 
-csv_file = open('../fer2013/fer2013.csv')
-
-reader = csv.reader(csv_file)
-
-def read_faces_csv(reader_file, center=True):
+def read_faces_csv(filename, center=True):
 	"""
 	Function that takes as input file a csv.reader() instance and assumes the following formatting:
 	emotion, pixels (2034 of them), usage (train, test, val)
@@ -14,6 +10,10 @@ def read_faces_csv(reader_file, center=True):
 	- X_test, y_test
 	- X_val, y_val
 	"""
+
+        csv_file = open(filename)
+
+        reader_file = csv.reader(csv_file)
 
 	# Discard header
 	row = next(reader_file)
@@ -30,7 +30,7 @@ def read_faces_csv(reader_file, center=True):
 
 		X_row_strs = X_row_str.split(' ')
 		X_row = [float(x) for x in X_row_strs]
-		
+
 		if data_type == 'PublicTest':
 			y_test_list.append(y)
 			X_test_list.append(X_row)
@@ -62,5 +62,3 @@ def read_faces_csv(reader_file, center=True):
 
 	#########
 	return X_train, y_train, X_test, y_test, X_val, y_val
-
-X_train, y_train, X_test, y_test, X_val, y_val = read_faces_csv(reader)
