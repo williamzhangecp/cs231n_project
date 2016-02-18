@@ -50,10 +50,6 @@ data = {'X_train' : X_train[:num_train,:,:,:], 'y_train' : y_train[:num_train], 
 
 print "Done loading data"
 
-# reg = 0.000511417045343
-# learning_rate = 0.000135139484703
-# weight_scale = 0.002088691359
-
 model = ThreeLayerConvNet(input_dim=(1, H, W), num_classes=7, num_filters=num_filters, filter_size=filter_size, \
 							weight_scale=weight, hidden_dim=hidden_dim, reg=reg)
 
@@ -88,4 +84,7 @@ def getConfusionMatrix(y_pred, y_true, numClasses=7, asFraction = True):
 
 scores = solver.model.loss(solver.X_val)
 y_pred = np.argmax(scores, axis=1)
-print getConfusionMatrix(y_pred, solver.y_val)
+
+confusion = getConfusionMatrix(y_pred, solver.y_val)
+
+print confusion
