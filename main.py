@@ -29,6 +29,7 @@ options = yaml.load(f)
 f.close()
 
 num_train = options['num_train']
+num_val = options['num_val']
 num_filters, filter_size = options['filters'], options['filter_size']
 weight = float(options['weight_scale'])
 hidden_dim = options['hidden_dim']
@@ -45,7 +46,7 @@ N_train, _, H, W = X_train.shape
 N_val, _, _, _ = X_val.shape
 
 data = {'X_train' : X_train[:num_train,:,:,:], 'y_train' : y_train[:num_train], \
-		"X_val" : X_val, "y_val" : y_val }
+		"X_val" : X_val[:num_val,:,:,:], "y_val" : y_val[:num_val] }
 
 print "Done loading data"
 
@@ -66,3 +67,25 @@ solver = Solver(model, data,
                 verbose=True, print_every=10)
 
 solver.train()
+
+def getConfusionMatrix(y_pred, y_true, numClasses=7, asFraction = True):
+    """
+    Returns confusion matrix.
+    Row: True Value
+    Column: Prediction
+    Entries: Counts
+    asFraction: if False return counts, otherwise fraction
+    """
+    confusionMatrix = np.zeros((numClasses,numClasses), np.int)
+    for i in range(y_pred.shape[0]):
+        confusionMatrix[y_true[i], y_pred[i]] += 1
+    if asFraction:
+        rowSums = confusionMatrix.sum(axis=1)
+        return confusionMatrix.astype(float)/rowSums[:, np.newaxis]
+    else:
+        return confusionMatrix
+
+
+scores = solver.model.loss(solver.X_val)
+y_pred = np.argmax(scores, axis=1)
+print getConfusionMatrix(y_pred, solver.y_val)
