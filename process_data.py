@@ -3,7 +3,7 @@ import h5py
 import numpy as np
 import sys
 
-def read_faces_csv(filename, num_lines = None, mirror = False, center=True):
+def read_faces_csv(filename, num_lines = None, mirror = False, center=True, use_tensorflow=False):
 	"""
 	Function that takes as input a filname to a csv file that assumes the following formatting:
 	emotion, pixels (2034 of them), usage (train, test, val)
@@ -79,6 +79,8 @@ def read_faces_csv(filename, num_lines = None, mirror = False, center=True):
 		X_val -= train_mean
 
 	############
+        if use_tensorflow: # Shape of array is different in tensorFlow
+            return X_train[:,:,:,np.newaxis], y_train, X_test[:,:,:,np.newaxis], y_test, X_val[:,:,:,np.newaxis], y_val
 	return X_train[:,np.newaxis,:,:], y_train, X_test[:,np.newaxis,:,:], y_test, X_val[:,np.newaxis,:,:], y_val
 
 def write_to_hdf5(csv_file, output_file, num_lines = None, mirror = False, center=True):
@@ -90,7 +92,7 @@ def write_to_hdf5(csv_file, output_file, num_lines = None, mirror = False, cente
 	- X_test, y_test
 	- X_val, y_val
 	"""
-	
+
 	# read in data using previously defined function into numpy arrays
 	X_train, y_train, X_test, y_test, X_val, y_val = read_faces_csv(csv_file, num_lines, mirror, center)
 
