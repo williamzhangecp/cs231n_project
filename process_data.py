@@ -3,7 +3,8 @@ import h5py
 import numpy as np
 import sys
 
-def read_faces_csv(filename, num_lines = None, mirror = False, center=True, use_tensorflow=False):
+def read_faces_csv(filename, num_lines = None, mirror = False, center=True, \
+					use_tf=False, use_th=False):
 	"""
 	Function that takes as input a filname to a csv file that assumes the following formatting:
 	emotion, pixels (2034 of them), usage (train, test, val)
@@ -73,10 +74,19 @@ def read_faces_csv(filename, num_lines = None, mirror = False, center=True, use_
 
 	# decide to mean-center or not
 	if center:
-		train_mean = X_train.mean(axis = 0)
+		train_mean = X_train.mean()
+		train_std = X_train.std()
 		X_train -= train_mean
+		X_train /= train_std
 		X_test -= train_mean
+		X_test /= train_std
 		X_val -= train_mean
+		X_val /= train_std
+
+	if use_th: # LUA (therefore Torch) uses 1-based indexing!!!
+		y_train += 1
+		y_test += 1
+		y_val += 1
 
 	############
         if use_tensorflow: # Shape of array is different in tensorFlow
