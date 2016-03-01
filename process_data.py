@@ -71,6 +71,7 @@ def read_faces_csv(filename, num_lines = None, mirror = False, center=True, \
 	# decide to flip or not
 	if mirror:
 		X_train = np.concatenate([X_train, X_train[:,:,::-1]])
+		y_train = np.concatenate([y_train, y_train])
 
 	# decide to mean-center or not
 	if center:
