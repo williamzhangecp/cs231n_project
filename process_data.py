@@ -89,7 +89,7 @@ def read_faces_csv(filename, num_lines = None, mirror = False, center=True, \
 		y_val += 1
 
 	############
-        if use_tensorflow: # Shape of array is different in tensorFlow
+        if use_tf: # Shape of array is different in tensorFlow
             return X_train[:,:,:,np.newaxis], y_train, X_test[:,:,:,np.newaxis], y_test, X_val[:,:,:,np.newaxis], y_val
 	return X_train[:,np.newaxis,:,:], y_train, X_test[:,np.newaxis,:,:], y_test, X_val[:,np.newaxis,:,:], y_val
 
