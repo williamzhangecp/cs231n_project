@@ -18,7 +18,7 @@ myFile:close()
 print("Done reading data")
 
 train_set = {}
-num_train = 100
+num_train = 1000
 train_set.data = X_train[{ {1, num_train}, {}, {}, {} }]
 train_set.label = y_train[{ {1, num_train}}]
 train_set.label = train_set.label:byte()
@@ -46,13 +46,13 @@ geometry = {48, 48}
 net = nn.Sequential()
 -- conv - relu - 2x2 max pool
 net:add(nn.SpatialConvolution(1, num_filters, 5, 5, 1, 1, 2, 2)) -- 1 input image channel, 32 output channels, 5x5 convolution kernel
-net:add(nn.ReLU())                       -- non-linearity 
+net:add(nn.ReLU())                       -- non-linearity
 net:add(nn.SpatialMaxPooling(2,2,2,2))     -- A max-pooling operation that looks at 2x2 windows and finds the max.
 
 -- affine - relu
 net:add(nn.View(num_filters*24*24))                    -- reshapes from a 3D tensor of 16x5x5 into 1D tensor of 16*5*5
 net:add(nn.Linear(num_filters*24*24, num_hidden))             -- fully connected layer (matrix multiplication between input and weights)
-net:add(nn.ReLU())							-- non-linearity 
+net:add(nn.ReLU())							-- non-linearity
 
 -- affine - softmax
 net:add(nn.Linear(num_hidden, 7))
@@ -64,14 +64,14 @@ print("Done setting up conv net")
 
 
 -- set up a meta-table --> what is this?
-setmetatable(train_set, 
-    {__index = function(t, i) 
-                    return {t.data[i], t.label[i]} 
+setmetatable(train_set,
+    {__index = function(t, i)
+                    return {t.data[i], t.label[i]}
                 end}
 );
 
-function train_set:size() 
-    return self.data:size(1) 
+function train_set:size()
+    return self.data:size(1)
 end
 
 
@@ -96,7 +96,7 @@ config = {
 -- callback function for optimization routine
 local function loss_and_grad(w)
   assert(w == weights)
-  
+
   -- forward pass
   local scores = net:forward(X_batch)
   local loss = criterion:forward(scores, y_batch)
@@ -104,7 +104,7 @@ local function loss_and_grad(w)
   -- backward pass: compute gradients
   grad_weights:zero()
   local dscores = criterion:backward(scores, y_batch)
-  net:backward(X_batch, dscores) -- local dx = 
+  net:backward(X_batch, dscores) -- local dx =
 
   return loss, grad_weights
 end
@@ -122,7 +122,7 @@ function train(dataset)
 
   --for t = 1, dataset:size(), batch_size do
   for t = 1, num_train, batch_size do
-    
+
     -- create mini batch
     local inputs = torch.Tensor(batch_size, 1, geometry[1], geometry[2])
     local targets = torch.Tensor(batch_size)
@@ -138,7 +138,7 @@ function train(dataset)
       k = k+1
     end
 
-    
+
     -- create closure to evalute f(X) and df/dX
     local feval = function(x)
       -- just in case:
@@ -166,7 +166,7 @@ function train(dataset)
         local norm = torch.norm
 
         -- loss:
-        f = f + l2_reg + norm(parameters, 2)^2/2
+        f = f + l2_reg * norm(parameters, 2)^2/2
 
         -- gradients:
         gradParameters:add( parameters:clone():mul(l2_reg) )
@@ -174,7 +174,7 @@ function train(dataset)
 
       -- update confusion
       for i = 1, batch_size do
-        confusion:add(outputs[i], targets[i])        
+        confusion:add(outputs[i], targets[i])
       end
 
       -- return f and df/dX
@@ -201,3 +201,14 @@ end
 for e = 1, 5 do
   train(X_train)
 end
+
+-- Validation accuracy
+confusion:zero()
+
+for i=1,num_test do
+    local groundtruth = test_set.label[i]
+    local prediction = net:forward(test_set.data[i])
+    confusion:add(prediction, groundtruth)
+end
+
+print(confusion)
