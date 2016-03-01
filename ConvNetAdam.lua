@@ -19,14 +19,14 @@ print("Done reading data")
 
 -- separate sets
 train_set = {}
-num_train = 5000
+num_train = 25000
 train_set.data = X_train[{ {1, num_train}, {}, {}, {} }]
 train_set.label = y_train[{ {1, num_train}}]
 train_set.label = train_set.label:byte()
 
 
 test_set = {}
-num_test = 500
+num_test = 3000
 test_set.data = X_test[{ {1, num_test}, {}, {}, {} }]
 test_set.label = y_test[{ {1, num_test} }]
 test_set.label = test_set.label:byte()
@@ -38,7 +38,7 @@ num_filters = 32
 
 batch_size = 50
 l2_reg = 0.001
-max_epoch = 5
+max_epoch = 15
 
 classes = {'Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral'}
 geometry = {48, 48}
@@ -186,24 +186,31 @@ function train(dataset)
   end
   --print(confusion)
   confusion:updateValids()
-  print('\n% mean class accuracy (train set) ' .. confusion.totalValid*100)
+  print('\n% Train accuracy: ' .. confusion.totalValid*100)
   confusion:zero()
   epoch = epoch + 1
 end
 
+
+function test()
+  confusion:zero()
+
+  for i=1,num_test do
+      local groundtruth = test_set.label[i]
+      local prediction = net:forward(test_set.data[i])
+      confusion:add(prediction, groundtruth)
+  end
+
+  confusion:updateValids()
+  print('% Test accuracy: ' .. confusion.totalValid*100)
+
+end
+
+
 -- let's train 
 for e = 1, max_epoch do
   train(X_train)
+  test()
 end
 
--- test accuracy
-print('\n Test accuracy: \n')
-confusion:zero()
-
-for i=1,num_test do
-    local groundtruth = test_set.label[i]
-    local prediction = net:forward(test_set.data[i])
-    confusion:add(prediction, groundtruth)
-end
-
-print(confusion)
+test()
