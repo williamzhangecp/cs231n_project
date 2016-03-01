@@ -17,8 +17,9 @@ myFile:close()
 
 print("Done reading data")
 
+-- separate sets
 train_set = {}
-num_train = 1000
+num_train = 5000
 train_set.data = X_train[{ {1, num_train}, {}, {}, {} }]
 train_set.label = y_train[{ {1, num_train}}]
 train_set.label = train_set.label:byte()
@@ -32,35 +33,50 @@ test_set.label = test_set.label:byte()
 
 
 -- hyper-parameters
-num_hidden = 500
+num_hidden = 200
 num_filters = 32
 
 batch_size = 50
-l2_reg = 0
+l2_reg = 0.001
+max_epoch = 5
 
-classes = {'1', '2', '3', '4', '5', '6', '7'}
+classes = {'Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral'}
 geometry = {48, 48}
 
 
 -- setting up neural net
 net = nn.Sequential()
--- conv - relu - 2x2 max pool
-net:add(nn.SpatialConvolution(1, num_filters, 5, 5, 1, 1, 2, 2)) -- 1 input image channel, 32 output channels, 5x5 convolution kernel
+-- conv - relu - conv - relu - 2x2 max pool
+net:add(nn.SpatialConvolution(1, num_filters, 3, 3, 1, 1, 1, 1)) -- 1 input image channel, 32 output channels, 3x3 convolution kernel
 net:add(nn.ReLU())                       -- non-linearity
 net:add(nn.SpatialMaxPooling(2,2,2,2))     -- A max-pooling operation that looks at 2x2 windows and finds the max.
 
+-- conv - relu - conv - relu - 2x2 max pool
+net:add(nn.SpatialConvolution(num_filters, num_filters, 3, 3, 1, 1, 1, 1))
+net:add(nn.ReLU())
+net:add(nn.SpatialMaxPooling(2,2,2,2))
+
+-- conv - relu - conv - relu - 2x2 max pool
+net:add(nn.SpatialConvolution(num_filters, num_filters, 3, 3, 1, 1, 1, 1))
+net:add(nn.ReLU())
+net:add(nn.SpatialMaxPooling(2,2,2,2))
+
+
 -- affine - relu
-net:add(nn.View(num_filters*24*24))                    -- reshapes from a 3D tensor of 16x5x5 into 1D tensor of 16*5*5
-net:add(nn.Linear(num_filters*24*24, num_hidden))             -- fully connected layer (matrix multiplication between input and weights)
-net:add(nn.ReLU())							-- non-linearity
+net:add(nn.View(num_filters*6*6)) -- reshapes the 3D tensor
+
+--net:add(nn.Linear(num_filters*6*6, num_hidden))             -- fully connected layer (matrix multiplication between input and weights)
+--net:add(nn.ReLU())              -- non-linearity
 
 -- affine - softmax
-net:add(nn.Linear(num_hidden, 7))
---net:add(nn.LogSoftMax())					-- converts the output to a log-probability. Useful for classification problems
+--net:add(nn.Linear(num_hidden, 7))
+--net:add(nn.LogSoftMax())          -- converts the output to a log-probability. Useful for classification problems
+net:add(nn.Linear(num_filters*6*6, 7))
 
 criterion = nn.CrossEntropyCriterion()
 
 print("Done setting up conv net")
+
 
 
 -- set up a meta-table --> what is this?
@@ -80,45 +96,23 @@ confusion = optim.ConfusionMatrix(classes)
 
 local parameters, gradParameters = net:getParameters()
 
--- state = {}
-
 config = {
    learningRate = 1e-3,
    beta1 = 0.9,
    beta2 = 0.999,
    epsilon = 1e-8,
    state = state
-   -- opfunc : function that takes a single input X, and returns f(X) and df/dX
-   -- x: initial point
 }
-
---[[
--- callback function for optimization routine
-local function loss_and_grad(w)
-  assert(w == weights)
-
-  -- forward pass
-  local scores = net:forward(X_batch)
-  local loss = criterion:forward(scores, y_batch)
-
-  -- backward pass: compute gradients
-  grad_weights:zero()
-  local dscores = criterion:backward(scores, y_batch)
-  net:backward(X_batch, dscores) -- local dx =
-
-  return loss, grad_weights
-end
-]]--
-
-
 
 function train(dataset)
   -- epoch tracker
   epoch = epoch or 1
 
   -- do one epoch
-  print('<trainer> on training set:')
-  print("<trainer> online epoch # " .. epoch .. ' [batchSize = ' .. batch_size .. ']')
+  print("\nEpoch # " .. epoch .. ' [batchSize = ' .. batch_size .. ']')
+
+  -- shuffle indices
+  local shuffled_idx = torch.randperm((#dataset)[1], 'torch.LongTensor')
 
   --for t = 1, dataset:size(), batch_size do
   for t = 1, num_train, batch_size do
@@ -129,10 +123,9 @@ function train(dataset)
     local k = 1
     for i = t, math.min(t + batch_size - 1, num_train) do
       -- load new sample
-      local sample = dataset[i]
+      local sample = dataset[shuffled_idx[i]]
       local input = sample[1]:clone()
-      local target = y_train[i]
-      --target = target:squeeze()
+      local target = y_train[shuffled_idx[i]]
       inputs[k] = input
       targets[k] = target
       k = k+1
@@ -191,18 +184,20 @@ function train(dataset)
     xlua.progress(t, num_train)
 
   end
-  print(confusion)
-  print('% mean class accuracy (train set)' .. confusion.totalValid*100)
+  --print(confusion)
+  confusion:updateValids()
+  print('\n% mean class accuracy (train set) ' .. confusion.totalValid*100)
   confusion:zero()
+  epoch = epoch + 1
 end
 
--- let's train bitchez
-
-for e = 1, 5 do
+-- let's train 
+for e = 1, max_epoch do
   train(X_train)
 end
 
--- Validation accuracy
+-- test accuracy
+print('\n Test accuracy: \n')
 confusion:zero()
 
 for i=1,num_test do
